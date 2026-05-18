@@ -50,12 +50,14 @@ curl 'https://$ENC.enclaves.beta.enclavia.io/?url=https://example.com'
 
 ## DNS and the in-enclave resolver
 
-This image sets `/etc/resolv.conf` to `nameserver 127.0.0.1`, pointing
-libc at the unbound resolver the enclave runtime stands up on loopback.
-Without that, hostname lookups go to whatever public resolver the base
-image was built with, and the egress daemon denies the resulting traffic
-because the resolver was never allow-listed.
+The enclave runtime exposes a validating unbound resolver on `127.0.0.1:53`
+inside the workload's network namespace. When the workload calls
+`getaddrinfo`, libc reads `/etc/resolv.conf` and finds `nameserver 127.0.0.1`,
+the resolver checks the request against the configured allowlist, and either
+forwards it to one of the `--egress-resolver` upstreams or returns REFUSED.
 
-When you author your own image, replicate the `RUN echo "nameserver
-127.0.0.1" > /etc/resolv.conf` line, or build on top of one that already
-does.
+The runtime writes `/etc/resolv.conf` into the workload rootfs automatically
+when an egress allowlist is configured, so your image doesn't need to do
+anything for hostname lookups to work. (Earlier versions of this sample
+contained a `RUN echo "nameserver 127.0.0.1" > /etc/resolv.conf` line to
+work around this gap; that's no longer necessary.)
