@@ -49,41 +49,68 @@ docker build -t notifier:v1 .
 enclavia push notifier:v1 <enclave-id>
 ```
 
+## Talking to the enclave
+
+The enclave's HTTP endpoints are only reachable through the
+Noise-encrypted WebSocket that the runtime exposes — plain `curl`
+against the enclave URL won't reach the in-enclave server. The
+[`enclavia`](https://github.com/EnclaviaIO/enclavia) Rust client
+handles the handshake, attestation check and request encryption.
+Python / Java / JS bindings are tracked at
+[enclavia#7](https://github.com/EnclaviaIO/enclavia/issues/7).
+
+A minimal client (Cargo dep: `enclavia = { git = "https://github.com/EnclaviaIO/enclavia" }`):
+
+```rust
+use enclavia::{Client, Pcrs};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let client = Client::builder("wss://<enclave-id>.enclaves.beta.enclavia.io")
+        .pcrs(Pcrs {
+            pcr0: hex::decode("…")?,  // from `enclavia enclave status`
+            pcr1: hex::decode("…")?,
+            pcr2: hex::decode("…")?,
+        })
+        .build()
+        .await?;
+    // ... see Bootstrap / Register below
+    Ok(())
+}
+```
+
 ## Bootstrap (one-time, after the enclave reaches `running`)
 
 You need an [Expo access token](https://docs.expo.dev/push-notifications/sending-notifications/#access-tokens)
 from your Expo account. The service rejects every other endpoint with
 HTTP 412 until this is done.
 
-```sh
-curl -X POST https://<enclave-id>.enclaves.beta.enclavia.io/bootstrap \
-     -H "Content-Type: application/json" \
-     -d '{"expo_access_token":"YOUR_EXPO_ACCESS_TOKEN"}'
+```rust
+let resp = client
+    .post("/bootstrap")
+    .json(&serde_json::json!({ "expo_access_token": "YOUR_EXPO_ACCESS_TOKEN" }))?
+    .send()
+    .await?;
+assert_eq!(resp.status(), 200);
 ```
 
-(Calling /bootstrap a second time returns 409. Destroy the enclave
+(Calling `/bootstrap` a second time returns 409. Destroy the enclave
 and re-create it if you need to rotate the secret. The persistent
 volume is recycled on `enclave destroy`.)
 
-> **Talking to the enclave from `curl`**: the enclave is reached over
-> a Noise-encrypted WebSocket; today this requires a small Rust
-> client built against the [`enclavia`](https://docs.enclavia.io/connect)
-> crate. Python / Java / JS bindings are tracked at
-> [enclavia#7](https://github.com/EnclaviaIO/enclavia/issues/7). The
-> `curl` lines above show the *request shape* — wire them through
-> the Rust client until those bindings ship.
-
 ## Register a pairing
 
-```sh
-curl -X POST https://<enclave-id>.enclaves.beta.enclavia.io/register \
-     -H "Content-Type: application/json" \
-     -d '{
-           "descriptor": "wpkh([abcdef00/84h/0h/0h]xpub6.../0/*)",
-           "expo_push_token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
-           "gap_limit": 20
-         }'
-# {"id": 1, "addresses": ["bc1q...", "bc1q...", ...]}
+```rust
+let resp = client
+    .post("/register")
+    .json(&serde_json::json!({
+        "descriptor": "wpkh([abcdef00/84h/0h/0h]xpub6.../0/*)",
+        "expo_push_token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+        "gap_limit": 20,
+    }))?
+    .send()
+    .await?;
+// {"id": 1, "addresses": ["bc1q...", "bc1q...", ...]}
 ```
 
 What the service does:
