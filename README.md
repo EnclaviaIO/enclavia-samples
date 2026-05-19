@@ -8,9 +8,10 @@ ships one image plus a README walking through the create-and-test flow.
 
 | Directory | What it tests |
 |-----------|---------------|
-| [`hello/`](hello/)     | The basic happy path: build, push, create, HTTP-respond. |
-| [`storage/`](storage/) | Persistent LUKS-encrypted volume at `/data`. |
-| [`egress/`](egress/)   | Outbound HTTPS through the in-enclave allowlist. |
+| [`hello/`](hello/)       | The basic happy path: build, push, create, HTTP-respond. |
+| [`storage/`](storage/)   | Persistent LUKS-encrypted volume at `/data`. |
+| [`egress/`](egress/)     | Outbound HTTPS through the in-enclave allowlist. |
+| [`notifier/`](notifier/) | All three together: storage + egress allowlist + first-start secret bootstrap. Watches Bitcoin descriptors via `mempool.space` and pushes notifications through Expo on matching transactions. |
 
 ## Prereqs
 
