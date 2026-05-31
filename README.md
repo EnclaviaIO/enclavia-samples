@@ -12,6 +12,7 @@ ships one image plus a README walking through the create-and-test flow.
 | [`storage/`](storage/)   | Persistent LUKS-encrypted volume at `/data`. |
 | [`egress/`](egress/)     | Outbound HTTPS through the in-enclave allowlist. |
 | [`notifier/`](notifier/) | All three together: storage + egress allowlist + first-start secret bootstrap. Watches Bitcoin descriptors via `mempool.space` and pushes notifications through Expo on matching transactions. |
+| [`localhost-proxy/`](localhost-proxy/) | Rust binary that runs on your laptop and bridges plain HTTP + WebSocket on `127.0.0.1:NNNN` to an enclave over the Noise channel. Point an unmodified browser wallet at `http://localhost:NNNN` and the requests reach the enclave attested. |
 
 ## Prereqs
 

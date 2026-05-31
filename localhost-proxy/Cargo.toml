@@ -1,0 +1,25 @@
+[package]
+name = "enclavia-localhost-proxy"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Wallet-friendly localhost shim: HTTP+WS on 127.0.0.1, Noise+attestation to an enclave."
+publish = false
+
+[[bin]]
+name = "enclavia-localhost-proxy"
+path = "src/main.rs"
+
+[dependencies]
+# Pinned to the enclavia branch that ships Client::upgrade + UpgradedStream
+# (https://github.com/EnclaviaIO/enclavia, see enclavia#15). Switch to a
+# released tag once #15's PR stack lands on master.
+enclavia = { git = "https://github.com/EnclaviaIO/enclavia", branch = "ws-tunnel-sdk" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util", "time", "sync"] }
+httparse = "1"
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+hex = "0.4"
+base64 = "0.22"
+sha1 = "0.10"
