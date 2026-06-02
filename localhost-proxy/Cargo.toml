@@ -11,10 +11,10 @@ name = "enclavia-localhost-proxy"
 path = "src/main.rs"
 
 [dependencies]
-# Pinned to the enclavia branch that ships Client::upgrade + UpgradedStream
-# (https://github.com/EnclaviaIO/enclavia, see enclavia#15). Switch to a
-# released tag once #15's PR stack lands on master.
-enclavia = { git = "https://github.com/EnclaviaIO/enclavia", branch = "ws-tunnel-sdk" }
+# Tracks enclavia master. The Cargo.lock pins an exact commit so the
+# sample is reproducible; bump it with `cargo update -p enclavia` to
+# pick up upstream SDK changes.
+enclavia = { git = "https://github.com/EnclaviaIO/enclavia", branch = "master" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util", "time", "sync"] }
 httparse = "1"
 clap = { version = "4", features = ["derive"] }

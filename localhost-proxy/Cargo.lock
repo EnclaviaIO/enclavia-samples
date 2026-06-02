@@ -688,7 +688,7 @@ dependencies = [
 [[package]]
 name = "enclavia"
 version = "0.1.0"
-source = "git+https://github.com/EnclaviaIO/enclavia?branch=ws-tunnel-sdk#1ce3240f2a2a4c86b0519984112aff3aa84ce204"
+source = "git+https://github.com/EnclaviaIO/enclavia?branch=master#c0921d9b7d7d07f716ce04bf268eaad61256fc74"
 dependencies = [
  "ciborium",
  "enclavia-protocol",
@@ -722,7 +722,7 @@ dependencies = [
 [[package]]
 name = "enclavia-protocol"
 version = "0.1.0"
-source = "git+https://github.com/EnclaviaIO/enclavia?branch=ws-tunnel-sdk#1ce3240f2a2a4c86b0519984112aff3aa84ce204"
+source = "git+https://github.com/EnclaviaIO/enclavia?branch=master#c0921d9b7d7d07f716ce04bf268eaad61256fc74"
 dependencies = [
  "attestation-doc-validation",
  "aws-nitro-enclaves-nsm-api",
