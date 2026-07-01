@@ -8,11 +8,13 @@ ships one image plus a README walking through the create-and-test flow.
 
 | Directory | What it tests |
 |-----------|---------------|
-| [`hello/`](hello/)       | The basic happy path: build, push, create, HTTP-respond. |
+| [`hello/`](hello/)       | The basic happy path: build, push, create, HTTP-respond, `curl` it back through the hosted proxy. |
 | [`storage/`](storage/)   | Persistent LUKS-encrypted volume at `/data`. |
 | [`egress/`](egress/)     | Outbound HTTPS through the in-enclave allowlist. |
-| [`notifier/`](notifier/) | All three together: storage + egress allowlist + first-start secret bootstrap. Watches Bitcoin descriptors via `mempool.space` and pushes notifications through Expo on matching transactions. |
-| [`localhost-proxy/`](localhost-proxy/) | Rust binary that runs on your laptop and bridges plain HTTP + WebSocket on `127.0.0.1:NNNN` to an enclave over the Noise channel. Point an unmodified browser wallet at `http://localhost:NNNN` and the requests reach the enclave attested. |
+| [`secrets/`](secrets/)   | Per-enclave environment-variable secrets: set a value with `enclavia secret set`, injected into the workload at boot, never baked into the image. |
+| [`upgrades/`](upgrades/) | Ship a new image version to a running enclave: `--upgradable` create, stage a v2 push, confirm the cutover, and read the attested upgrade chain. |
+| [`notifier/`](notifier/) | Storage + egress allowlist + a secret together. Watches Bitcoin descriptors via `mempool.space` and pushes notifications through Expo on matching transactions. |
+| [`localhost-proxy/`](localhost-proxy/) | Rust binary that runs on your laptop and bridges plain HTTP + WebSocket on `127.0.0.1:NNNN` to an enclave over the Noise channel, verifying attestation client-side. Point an unmodified browser wallet at `http://localhost:NNNN` and the requests reach the enclave attested. |
 
 ## Prereqs
 
@@ -64,15 +66,27 @@ subdirectory's README — they're flags you add to step 2's
 
 ## Observing the workload
 
-Enclavia exposes each running enclave on a WebSocket endpoint at
-`wss://<enclave-id>.enclaves.beta.enclavia.io`. Connections speak an
-end-to-end-encrypted Noise channel directly to the in-enclave
-responder (see [docs.enclavia.io/connect](https://docs.enclavia.io/connect)),
-which then forwards plaintext to whatever HTTP service your container
-runs on `--container-port`. There is **no plain-HTTPS endpoint to
-`curl`**; the encryption terminates inside the enclave, by design.
+Every running enclave gets a **hosted HTTPS URL** you can `curl`:
 
-For these samples that means three practical paths:
+```
+https://<enclave-id>.enclaves.beta.enclavia.io/proxy/<path>
+```
+
+The `/proxy/` prefix is stripped before the request reaches your
+workload, so a container endpoint of `GET /health` is reachable at
+`/proxy/health`. Every response carries `X-Enclavia-PCR0`, `-PCR1`,
+`-PCR2` headers: the PCRs the proxy verified during the attestation
+handshake (they match `enclavia enclave status`). Full reference at
+[docs.enclavia.io/proxy](https://docs.enclavia.io/proxy).
+
+The hosted path terminates TLS at Enclavia's edge and runs the Noise
+handshake plus the Nitro attestation check **on your behalf**, so you
+trust Enclavia's edge to have verified the enclave (it can see your
+plaintext in transit). For a **trustless** connection where your own
+device is the attestor, connect with the client SDK (below) or run the
+same proxy yourself ([self-host](https://docs.enclavia.io/self-host-proxy)).
+
+Beyond `curl`, three more ways to observe a running sample:
 
 1. **Read build + runtime logs from the dashboard.** Open the enclave
    in [beta.enclavia.io](https://beta.enclavia.io) — the runtime-logs
@@ -84,9 +98,10 @@ For these samples that means three practical paths:
    [MCP connector](https://docs.enclavia.io/mcp), the agent has
    `enclave_status` and `enclave_logs` tools that let you ask
    "what did my hello enclave just print?" in plain English.
-3. **Talk to the HTTP service from your own code.** For this you
-   need a client that speaks the Noise channel. Today that means a
-   small amount of Rust against the [`enclavia` client crate](https://docs.enclavia.io/connect);
+3. **Connect trustlessly from your own code.** To verify attestation
+   in your own process (not trusting the hosted proxy), use a client
+   that speaks the Noise channel. Today that means a small amount of
+   Rust against the [`enclavia` client crate](https://docs.enclavia.io/connect);
    official bindings for **Python, Java, and JavaScript (WASM)** are
    on the way (see [enclavia#7](https://github.com/EnclaviaIO/enclavia/issues/7))
    so the same flow will be available from your language of choice
