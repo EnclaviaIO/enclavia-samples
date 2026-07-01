@@ -48,12 +48,23 @@ to confirm persistence is to:
 3. `enclavia enclave stop <id>`, then `enclavia enclave start <id>`.
    The new boot prints `boot_count=2`.
 
-To actually hit `/increment` and `/` from outside the enclave you need
-a Noise-speaking client (see the [top-level README](../README.md) for
-the minimum Rust example, or [docs.enclavia.io/connect](https://docs.enclavia.io/connect)).
-Bindings for **Python, Java, and JavaScript (WASM)** are coming
-([enclavia#7](https://github.com/EnclaviaIO/enclavia/issues/7)) so you
-won't need Rust forever.
+To hit `/increment` and `/` from outside the enclave, `curl` them
+through the hosted proxy (the `/proxy/` prefix is stripped before the
+request reaches the workload):
+
+```sh
+ID=<enclave-id>
+curl -s https://$ID.enclaves.beta.enclavia.io/proxy/increment
+curl -s https://$ID.enclaves.beta.enclavia.io/proxy/
+# {"boot_count":2,"request_count":1}
+```
+
+For a trustless connection that verifies attestation in your own
+process, use a Noise-speaking client instead (see the
+[top-level README](../README.md) for the minimum Rust example, or
+[docs.enclavia.io/connect](https://docs.enclavia.io/connect); Python,
+Java, and JavaScript (WASM) bindings are tracked at
+[enclavia#7](https://github.com/EnclaviaIO/enclavia/issues/7)).
 
 ## What this proves
 

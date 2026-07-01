@@ -44,19 +44,32 @@ end-to-end path works.
 
 ## See the response body
 
-There is **no plain-HTTPS endpoint to `curl`** — the enclave is
-reachable on `wss://<enclave-id>.enclaves.beta.enclavia.io` over an
-end-to-end-encrypted Noise channel. Three ways to actually see the
-`hello from inside the enclave` JSON the app returns:
+`curl` it through the hosted HTTPS proxy (the `/proxy/` prefix is
+stripped, so the app's `GET /` is at `/proxy/`):
 
-1. **Dashboard.** Open the enclave in [beta.enclavia.io](https://beta.enclavia.io)
-   and the runtime-logs view shows the per-request log line the app
-   prints (this app logs every request to stdout).
+```sh
+ID=1d2c3b4a-5e6f-7a8b-9c0d-1e2f3a4b5c6d   # from `enclave status`
+
+curl -i https://$ID.enclaves.beta.enclavia.io/proxy/
+# HTTP/2 200
+# x-enclavia-pcr0: <hex>
+# x-enclavia-pcr1: <hex>
+# x-enclavia-pcr2: <hex>
+# ...
+# {"message":"hello from inside the enclave", ...}
+```
+
+The `x-enclavia-pcr*` response headers are the PCRs the proxy verified
+during the attestation handshake; they match `enclave status`. The
+hosted proxy runs that attestation check on your behalf (see the
+[trust model](https://docs.enclavia.io/proxy#trust-model)); for a
+trustless connection that attests in your own process, use the
+[client SDK](https://docs.enclavia.io/connect) (the Rust snippet in
+the top-level README is the canonical example).
+
+Two more ways to see the greeting without any HTTP client:
+
+1. **Dashboard.** Open the enclave in [beta.enclavia.io](https://beta.enclavia.io);
+   the runtime-logs view shows the per-request line the app prints.
 2. **MCP.** With the [MCP connector](https://docs.enclavia.io/mcp)
    wired up, ask your agent to `enclave_logs <id>`.
-3. **Your own code.** A small Rust client using the [`enclavia` crate](https://docs.enclavia.io/connect)
-   does the Noise handshake, attestation verification, and an HTTP
-   GET in a few lines. Bindings for **Python, Java, and JavaScript
-   (WASM)** are on the way — see [enclavia#7](https://github.com/EnclaviaIO/enclavia/issues/7).
-
-The Rust snippet from the top-level README is the canonical example.
