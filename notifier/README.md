@@ -98,6 +98,17 @@ assert_eq!(resp.status(), 200);
 and re-create it if you need to rotate the secret. The persistent
 volume is recycled on `enclave destroy`.)
 
+> **Two ways to get a secret into an enclave.** This sample uses the
+> *bootstrap-over-the-channel* pattern: the token enters the enclave
+> only after your client has verified attestation, so Enclavia never
+> handles the value, and it's persisted to the encrypted volume. The
+> simpler alternative for most credentials is `enclavia secret set`
+> (encrypted at rest by the backend, injected into the workload's env
+> at boot, rotate with an `enclave restart` instead of a re-create),
+> shown in the [`secrets/`](../secrets/) sample. Choose bootstrap when
+> the operator must never see the value; choose `secret set` for
+> convenience.
+
 ## Register a pairing
 
 ```rust

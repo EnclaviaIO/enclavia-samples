@@ -71,3 +71,10 @@ enclavia enclave restart $ID                           # apply either
   every response return names and metadata, never the value.
 - Because injection is at boot, a `set` / `delete` only takes effect on
   the next `enclave restart`.
+
+> **Prefer that the operator never sees the value?** With `secret set`
+> the backend holds the encrypted secret and injects it at boot. For a
+> stronger trust boundary, hand the secret to the enclave from your own
+> client *after* verifying attestation, so it never passes through
+> Enclavia at all: the [`notifier/`](../notifier/) sample shows that
+> bootstrap-over-the-channel pattern.
