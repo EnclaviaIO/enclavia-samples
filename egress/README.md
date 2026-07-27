@@ -1,5 +1,9 @@
 # egress
 
+[![Deploy on Enclavia](https://beta.enclavia.io/deploy-button.svg)](https://beta.enclavia.io/deploy?manifest=https://raw.githubusercontent.com/EnclaviaIO/enclavia-samples/main/egress/enclavia.json)
+
+One-click deploy prefills the outbound allowlist ([`enclavia.json`](enclavia.json)) so you review exactly what the workload may reach before creating it.
+
 Makes outbound HTTPS requests from inside the enclave to exercise the
 egress allowlist. Logs the result of each fetch to stdout on startup
 and also serves them as JSON over its HTTP endpoint, so you can verify

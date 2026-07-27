@@ -1,5 +1,9 @@
 # notifier
 
+[![Deploy on Enclavia](https://beta.enclavia.io/deploy-button.svg)](https://beta.enclavia.io/deploy?manifest=https://raw.githubusercontent.com/EnclaviaIO/enclavia-samples/main/notifier/enclavia.json)
+
+One-click deploy provisions storage + the mempool.space / exp.host egress allowlist from [`enclavia.json`](enclavia.json); set the Expo token afterward via the workload's `/bootstrap` endpoint.
+
 A small service that watches one or more Bitcoin descriptors and
 sends a push notification to a matching Expo client whenever a
 transaction in or out of any derived address is seen on

@@ -1,5 +1,9 @@
 # secrets
 
+[![Deploy on Enclavia](https://beta.enclavia.io/deploy-button.svg)](https://beta.enclavia.io/deploy?manifest=https://raw.githubusercontent.com/EnclaviaIO/enclavia-samples/main/secrets/enclavia.json)
+
+One-click deploy: the form prompts for the `API_TOKEN` secret declared in [`enclavia.json`](enclavia.json) (its value is never in the manifest).
+
 Reads a per-enclave secret from its environment and reports that it is
 present, without ever revealing the value. Secrets are set with
 `enclavia secret set`, encrypted at rest with the backend's master key,

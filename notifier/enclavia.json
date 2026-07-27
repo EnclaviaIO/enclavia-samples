@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "notifier",
+  "image": "ghcr.io/enclaviaio/enclavia-samples/notifier:latest",
+  "container_port": 8080,
+  "instance_type": "small",
+  "storage_mib": 256,
+  "visibility": "private",
+  "egress_allowlist": {
+    "version": 1,
+    "resolvers": ["1.1.1.1"],
+    "egress": [
+      { "host": "mempool.space", "port": 443, "protocol": "tcp" },
+      { "host": "exp.host", "port": 443, "protocol": "tcp" }
+    ]
+  }
+}

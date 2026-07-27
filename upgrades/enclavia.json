@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "name": "upgrades",
+  "image": "ghcr.io/enclaviaio/enclavia-samples/upgrades:latest",
+  "container_port": 8080,
+  "instance_type": "small",
+  "upgradable": true,
+  "visibility": "private"
+}

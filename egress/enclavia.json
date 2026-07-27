@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "egress",
+  "image": "ghcr.io/enclaviaio/enclavia-samples/egress:latest",
+  "container_port": 8080,
+  "instance_type": "small",
+  "visibility": "private",
+  "egress_allowlist": {
+    "version": 1,
+    "resolvers": ["1.1.1.1"],
+    "egress": [
+      { "host": "api.github.com", "port": 443, "protocol": "tcp" }
+    ]
+  }
+}

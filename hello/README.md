@@ -7,6 +7,20 @@ runtime's startup probe.
 Use this image to confirm the enclave end-to-end: build, push, create,
 get to `running`, see your "hello" come back.
 
+## One click
+
+The published image plus [`enclavia.json`](enclavia.json) make this a
+one-click deploy, no CLI needed:
+
+[![Deploy on Enclavia](https://beta.enclavia.io/deploy-button.svg)](https://beta.enclavia.io/deploy?manifest=https://raw.githubusercontent.com/EnclaviaIO/enclavia-samples/main/hello/enclavia.json)
+
+The badge opens the create form prefilled from the manifest; it deploys
+`ghcr.io/enclaviaio/enclavia-samples/hello`, the exact image published
+from this directory by the [`publish-images`](../.github/workflows/publish-images.yml)
+workflow. See the [deploy-button docs](https://docs.enclavia.io/deploy-button)
+for the manifest schema. The manual create-and-push flow below does the
+same thing from your terminal.
+
 ## Create the enclave
 
 ```sh

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "name": "hello",
+  "image": "ghcr.io/enclaviaio/enclavia-samples/hello:latest",
+  "container_port": 8080,
+  "instance_type": "small",
+  "visibility": "private"
+}

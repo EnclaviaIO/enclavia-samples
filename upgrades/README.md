@@ -1,5 +1,9 @@
 # upgrades
 
+[![Deploy on Enclavia](https://beta.enclavia.io/deploy-button.svg)](https://beta.enclavia.io/deploy?manifest=https://raw.githubusercontent.com/EnclaviaIO/enclavia-samples/main/upgrades/enclavia.json)
+
+One-click deploy creates the enclave `--upgradable` (per [`enclavia.json`](enclavia.json)) so you can stage a v2 later.
+
 Ships a new image version to an already-running enclave through the
 attested upgrade flow: create it `--upgradable`, stage a v2 push, confirm
 the cutover, and read the append-only, attested upgrade chain. The app

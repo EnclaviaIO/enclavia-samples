@@ -1,5 +1,9 @@
 # storage
 
+[![Deploy on Enclavia](https://beta.enclavia.io/deploy-button.svg)](https://beta.enclavia.io/deploy?manifest=https://raw.githubusercontent.com/EnclaviaIO/enclavia-samples/main/storage/enclavia.json)
+
+One-click deploy attaches the encrypted volume from [`enclavia.json`](enclavia.json), no CLI needed.
+
 Reads and writes `/data/state.json` to exercise the enclave's
 persistent LUKS-encrypted btrfs volume.
 

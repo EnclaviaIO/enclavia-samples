@@ -16,6 +16,21 @@ ships one image plus a README walking through the create-and-test flow.
 | [`notifier/`](notifier/) | Storage + egress allowlist + a secret together. Watches Bitcoin descriptors via `mempool.space` and pushes notifications through Expo on matching transactions. |
 | [`localhost-proxy/`](localhost-proxy/) | Rust binary that runs on your laptop and bridges plain HTTP + WebSocket on `127.0.0.1:NNNN` to an enclave over the Noise channel, verifying attestation client-side. Point an unmodified browser wallet at `http://localhost:NNNN` and the requests reach the enclave attested. |
 
+## One-click deploy
+
+Every sample image is published to the GitHub Container Registry by the
+[`publish-images`](.github/workflows/publish-images.yml) workflow, and each
+sample directory carries an [`enclavia.json`](hello/enclavia.json) manifest,
+so any of them can be launched straight from the browser with no CLI. Click
+the **Deploy on Enclavia** badge in a sample's README (it opens the create
+form prefilled from that manifest), or deploy the default `hello` workload
+from the repo-root manifest:
+
+[![Deploy on Enclavia](https://beta.enclavia.io/deploy-button.svg)](https://beta.enclavia.io/deploy?manifest=https://raw.githubusercontent.com/EnclaviaIO/enclavia-samples/main/enclavia.json)
+
+See the [deploy-button docs](https://docs.enclavia.io/deploy-button) for the
+manifest schema and how to add the button to your own repo.
+
 ## Prereqs
 
 - An account on `beta.enclavia.io` (or your own deployment).
