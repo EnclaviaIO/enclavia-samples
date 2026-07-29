@@ -32,8 +32,28 @@ def read_state():
 def write_state(state):
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     tmp = STATE_PATH.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(state))
-    tmp.replace(STATE_PATH)
+    data = json.dumps(state).encode()
+
+    # Durable write-then-rename: fsync the tmp file's data before the
+    # rename makes it visible, then fsync the directory entry too, so a
+    # power-off/kill right after this call returns can't lose the write
+    # (this is what makes the state actually survive a stop/start cycle;
+    # without it the write can sit dirty in the guest's page cache for
+    # up to a filesystem commit interval).
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+    try:
+        os.write(fd, data)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+    os.replace(tmp, STATE_PATH)
+
+    dir_fd = os.open(STATE_PATH.parent, os.O_RDONLY)
+    try:
+        os.fsync(dir_fd)
+    finally:
+        os.close(dir_fd)
 
 
 state = read_state()
