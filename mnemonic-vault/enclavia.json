@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "name": "mnemonic-vault",
+  "image": "ghcr.io/enclaviaio/enclavia-samples/mnemonic-vault:latest",
+  "container_port": 8080,
+  "instance_type": "small",
+  "storage_mib": 256,
+  "visibility": "private"
+}

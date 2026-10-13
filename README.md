@@ -14,6 +14,7 @@ ships one image plus a README walking through the create-and-test flow.
 | [`secrets/`](secrets/)   | Per-enclave environment-variable secrets: set a value with `enclavia secret set`, injected into the workload at boot, never baked into the image. |
 | [`upgrades/`](upgrades/) | Ship a new image version to a running enclave: `--upgradable` create, stage a v2 push, confirm the cutover, and read the attested upgrade chain. |
 | [`notifier/`](notifier/) | Storage + egress allowlist + a secret together. Watches Bitcoin descriptors via `mempool.space` and pushes notifications through Expo on matching transactions. |
+| [`mnemonic-vault/`](mnemonic-vault/) | Back up a wallet mnemonic under an email and password. Storage + a web app on the client SDK. The enclave limits wrong-password guesses, which only holds against the host with `--production --anti-rollback`. |
 | [`localhost-proxy/`](localhost-proxy/) | Rust binary that runs on your laptop and bridges plain HTTP + WebSocket on `127.0.0.1:NNNN` to an enclave over the Noise channel, verifying attestation client-side. Point an unmodified browser wallet at `http://localhost:NNNN` and the requests reach the enclave attested. |
 
 ## One-click deploy

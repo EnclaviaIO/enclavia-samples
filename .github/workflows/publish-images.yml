@@ -32,7 +32,7 @@ jobs:
       matrix:
         # Every subdirectory that ships a Dockerfile (localhost-proxy is a
         # laptop-side binary, not an enclave image, so it is excluded).
-        sample: [hello, egress, secrets, storage, notifier, upgrades]
+        sample: [hello, egress, secrets, storage, notifier, upgrades, mnemonic-vault]
     steps:
       - uses: actions/checkout@v4
 
