@@ -136,8 +136,10 @@ in chunks. Don't fetch `/` through the SDK's raw request box.
 ## Workshop
 
 A 70-minute hands-on outline. The presenter runs one **production**
-enclave (`--production --upgradable --min-upgrade-delay 7d`); attendees
-need only a browser for the first part.
+enclave (`--production --upgradable --min-upgrade-delay 24h`); attendees
+need only a browser for the first part. The delay is baked into the
+image and also holds back your own fixes, so pick it deliberately: a
+longer one makes the rug-pull demo stronger and a mistake costlier.
 
 1. **Bid (15 min).** Share the link with the presenter's enclave ID and
    PCRs. Everyone connects and bids. Watch the bid count and the head
