@@ -165,7 +165,10 @@ Points worth raising in the discussion:
 
 - **Debug vs production.** A debug enclave's attestation is a stub (nonce
   binding and PCR equality, no hardware signature). The "nobody can read
-  the bids" claim holds only on production Nitro.
+  the bids" claim holds only on production Nitro. The Debug box is a
+  weaker check, not a different one: with it ticked the SDK also accepts
+  a production enclave, and would accept a fake one that copied the
+  PCRs. The web app warns when Debug is on against a production enclave.
 - **The proxy.** The page served through `/proxy/` is only as trustworthy
   as the proxy. A page from your own disk isn't.
 - **Rolling back the disk.** The operator could restore an old copy of the

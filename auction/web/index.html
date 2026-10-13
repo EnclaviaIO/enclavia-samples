@@ -575,6 +575,7 @@ async function connect() {
     setConn("ok", options.debugMode ? "attested (debug)" : "attested");
     markTampered();
     refreshStatus();
+    if (options.debugMode) warnIfProduction(t);
   } catch (e) {
     client = null;
     setConn("bad", "refused");
@@ -584,6 +585,20 @@ async function connect() {
     $("connect-error").textContent = why || String(e.message || e);
     $("connect-error").classList.remove("hidden");
   }
+}
+
+// Debug mode skips the hardware signature, so it also accepts a
+// production enclave. Ask the proxy which kind this is (a hint only:
+// the proxy could lie) and warn when the check was weaker than needed.
+async function warnIfProduction(t) {
+  try {
+    const r = await fetch(`${t.proxyBase}/health`, { cache: "no-store" });
+    if (r.headers.get("X-Enclavia-Debug-Mode") !== "false") return;
+    const msg = "This is a production enclave, but Debug mode is on, so the hardware signature wasn't checked. Untick Debug mode and reconnect.";
+    log("warn", msg);
+    $("connect-error").textContent = msg;
+    $("connect-error").classList.remove("hidden");
+  } catch {}
 }
 
 function disconnect(quiet) {

@@ -315,12 +315,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
-        # Lets a page on another origin read the proxy's X-Enclavia-PCR*
-        # headers when it calls /proxy/health to prefill the pins.
+        # Lets a page on another origin read the proxy's X-Enclavia-*
+        # headers when it calls /proxy/health to prefill the pins or to
+        # check whether the enclave runs in debug mode.
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header(
             "Access-Control-Expose-Headers",
-            "X-Enclavia-PCR0, X-Enclavia-PCR1, X-Enclavia-PCR2",
+            "X-Enclavia-PCR0, X-Enclavia-PCR1, X-Enclavia-PCR2, X-Enclavia-Debug-Mode",
         )
         self.end_headers()
         self.wfile.write(body)
