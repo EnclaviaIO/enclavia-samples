@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "auction",
+  "image": "ghcr.io/enclaviaio/enclavia-samples/auction:latest",
+  "container_port": 8080,
+  "instance_type": "small",
+  "storage_mib": 256,
+  "visibility": "private",
+  "secrets": [
+    { "name": "ADMIN_TOKEN", "description": "Password for closing a round and opening the next one. Pick anything; you type it into the web app's Admin panel.", "required": true }
+  ]
+}
