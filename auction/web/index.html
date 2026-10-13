@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sealed-Bid Auction</title>
+<style>
+  :root {
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --surface-2: #f0eee8;
+    --border: #dcd8cf;
+    --text: #1d1b16;
+    --muted: #6b665b;
+    --accent: #b4540a;
+    --accent-text: #ffffff;
+    --ok: #1f7a3d;
+    --ok-bg: #e3f3e8;
+    --bad: #b42318;
+    --bad-bg: #fbe7e4;
+    --warn: #8a5a00;
+    --warn-bg: #fdf1d6;
+    --console-bg: #17150f;
+    --console-text: #e9e4d6;
+    --console-muted: #9a937f;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #13120e;
+      --surface: #1c1a15;
+      --surface-2: #26231c;
+      --border: #3a362c;
+      --text: #ece8dc;
+      --muted: #a39d8c;
+      --accent: #f08a2c;
+      --accent-text: #1d1206;
+      --ok: #5fcf85;
+      --ok-bg: #173322;
+      --bad: #f2786b;
+      --bad-bg: #3a1a16;
+      --warn: #f0c060;
+      --warn-bg: #362a10;
+      --console-bg: #0b0a07;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #13120e;
+    --surface: #1c1a15;
+    --surface-2: #26231c;
+    --border: #3a362c;
+    --text: #ece8dc;
+    --muted: #a39d8c;
+    --accent: #f08a2c;
+    --accent-text: #1d1206;
+    --ok: #5fcf85;
+    --ok-bg: #173322;
+    --bad: #f2786b;
+    --bad-bg: #3a1a16;
+    --warn: #f0c060;
+    --warn-bg: #362a10;
+    --console-bg: #0b0a07;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 var(--sans);
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 650; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .spacer { flex: 1; }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: 16px;
+    padding: 16px 20px 40px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  @media (max-width: 960px) {
+    main { grid-template-columns: minmax(0, 1fr); padding: 12px 16px 32px; }
+    header { padding: 12px 16px; flex-wrap: wrap; }
+    /* One column: put the auction before the console on phones. */
+    main > .col { display: contents; }
+    main .stat .v { font-size: 17px; }
+    #card-pin { order: 1; }
+    #card-round { order: 2; }
+    #bid-card { order: 3; }
+    #results-card { order: 4; }
+    #card-console { order: 5; }
+    #card-admin { order: 6; }
+  }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  section.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    min-width: 0;
+  }
+  section.card > h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin: 0 0 12px;
+    font-weight: 650;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  section.card > h2 .right { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input[type="text"], input[type="number"], input[type="password"], textarea, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  .mono, input.mono, textarea.mono { font-family: var(--mono); font-size: 12.5px; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row > .grow { flex: 1; min-width: 0; }
+  .pcr-row { display: flex; gap: 6px; align-items: center; }
+  .pcr-row input { flex: 1; min-width: 0; }
+  .pcr-row .tag { font-family: var(--mono); font-size: 12px; color: var(--muted); width: 40px; flex: none; }
+  .pcr-row input.tampered { border-color: var(--bad); background: var(--bad-bg); }
+
+  button {
+    font: inherit;
+    font-size: 14px;
+    padding: 7px 12px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:hover:not(:disabled) { border-color: var(--muted); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button.small { font-size: 12px; padding: 4px 8px; }
+  button.danger { color: var(--bad); }
+
+  .check { display: flex; gap: 8px; align-items: center; margin: 8px 0 0; color: var(--text); font-size: 14px; }
+  .check input { width: auto; margin: 0; }
+  .hint { color: var(--muted); font-size: 12.5px; margin: 6px 0 0; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
+  }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+  .pill.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+
+  .banner { border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-top: 10px; }
+  .banner.warn { background: var(--warn-bg); color: var(--warn); }
+  .banner.bad { background: var(--bad-bg); color: var(--bad); }
+  .banner.ok { background: var(--ok-bg); color: var(--ok); }
+
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .stat { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 22px; font-weight: 650; overflow-wrap: break-word; }
+  .round-title { font-size: 20px; font-weight: 650; margin: 0 0 10px; overflow-wrap: anywhere; }
+  .hash { font-family: var(--mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+
+  .winner {
+    border: 2px solid var(--accent); border-radius: 10px; padding: 14px; margin-bottom: 12px;
+  }
+  .winner .name { font-size: 24px; font-weight: 700; overflow-wrap: anywhere; }
+  .winner .amt { font-size: 18px; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.mine td { background: var(--warn-bg); }
+  td.msg { color: var(--muted); overflow-wrap: anywhere; }
+  td.name { overflow-wrap: anywhere; }
+
+  .receipts { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 6px; }
+  .receipts li { background: var(--surface-2); border-radius: 7px; padding: 8px 10px; font-size: 13px; }
+
+  .console {
+    background: var(--console-bg); color: var(--console-text);
+    font-family: var(--mono); font-size: 12px; line-height: 1.5;
+    border-radius: 8px; padding: 10px; height: 320px; overflow: auto;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .console .t { color: var(--console-muted); }
+  .console .ok { color: #7ee2a0; }
+  .console .bad { color: #ff8f80; }
+  .console .warn { color: #f5cf73; }
+  .console .req { color: #8fc7ff; }
+  .console details { margin: 0 0 0 1.5em; }
+  .console summary { cursor: pointer; color: var(--console-muted); }
+
+  details.admin > summary { cursor: pointer; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 650; }
+  .checks { list-style: none; padding: 0; margin: 10px 0 0; font-size: 14px; }
+  .checks li { padding: 3px 0; }
+  .checks li.ok::before { content: "✓ "; color: var(--ok); font-weight: 700; }
+  .checks li.bad::before { content: "✗ "; color: var(--bad); font-weight: 700; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Sealed-bid auction</h1>
+    <div class="sub">Bids go end to end into an attested enclave. Nobody sees them until the round closes.</div>
+  </div>
+  <div class="spacer"></div>
+  <span id="conn-pill" class="pill">not connected</span>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card" id="card-pin">
+      <h2>1 · Pin the enclave</h2>
+      <label for="enclave">Enclave ID or wss:// URL</label>
+      <input id="enclave" type="text" class="mono" placeholder="1d2c3b4a-5e6f-7a8b-9c0d-1e2f3a4b5c6d" autocomplete="off" spellcheck="false">
+
+      <label>PCRs to pin (hex, from <code>enclavia enclave status</code>)</label>
+      <div class="pcr-row"><span class="tag">PCR0</span><input id="pcr0" type="text" class="mono" autocomplete="off" spellcheck="false"><button class="small" data-flip="pcr0" title="Change one byte">flip a byte</button></div>
+      <div class="pcr-row" style="margin-top:6px"><span class="tag">PCR1</span><input id="pcr1" type="text" class="mono" autocomplete="off" spellcheck="false"><button class="small" data-flip="pcr1" title="Change one byte">flip a byte</button></div>
+      <div class="pcr-row" style="margin-top:6px"><span class="tag">PCR2</span><input id="pcr2" type="text" class="mono" autocomplete="off" spellcheck="false"><button class="small" data-flip="pcr2" title="Change one byte">flip a byte</button></div>
+
+      <div class="row" style="margin-top:10px">
+        <button id="btn-proxy-pcrs" title="Read X-Enclavia-PCR* from the hosted proxy">Get PCRs from proxy</button>
+        <button id="btn-undo-flips">Undo flips</button>
+        <button id="btn-share" title="Copy a link with these settings">Copy share link</button>
+      </div>
+
+      <label class="check"><input id="debug-mode" type="checkbox"> Debug mode (QEMU beta enclave: no hardware signature)</label>
+      <label class="check"><input id="trust-upgrades" type="checkbox"> Follow the signed upgrade chain instead of fixed PCRs</label>
+
+      <div class="row" style="margin-top:14px">
+        <button id="btn-connect" class="primary">Connect and verify</button>
+        <button id="btn-disconnect" disabled>Disconnect</button>
+      </div>
+      <div id="pins-changed" class="banner warn hidden">The pins changed. They apply on the next connect.</div>
+      <div id="connect-error" class="banner bad hidden"></div>
+    </section>
+
+    <section class="card" id="card-console">
+      <h2>Debug console <span class="right"><button id="btn-clear" class="small">Clear</button></span></h2>
+      <div id="console" class="console" aria-live="polite"></div>
+
+      <label for="raw-path">Raw request through the encrypted channel</label>
+      <div class="row">
+        <select id="raw-method" style="width:auto"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+        <input id="raw-path" type="text" class="mono grow" value="/status" spellcheck="false">
+        <button id="btn-raw">Send</button>
+      </div>
+      <textarea id="raw-body" class="mono" placeholder='Body (JSON), e.g. {"bidder":"alice","amount_sats":21000}' style="margin-top:6px"></textarea>
+      <label class="check"><input id="raw-auth" type="checkbox"> Send the admin token from the Admin panel</label>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card" id="card-round">
+      <h2>2 · The round <span class="right"><label class="check" style="margin:0"><input id="auto-refresh" type="checkbox" checked> auto refresh</label></span></h2>
+      <div id="round-empty" class="hint">Connect to see the round.</div>
+      <div id="round" class="hidden">
+        <p id="round-title" class="round-title"></p>
+        <div class="stats">
+          <div class="stat"><div class="k">Phase</div><div class="v" id="round-phase"></div></div>
+          <div class="stat"><div class="k">Sealed bids</div><div class="v" id="round-count"></div></div>
+          <div class="stat"><div class="k" id="round-time-k">Closes</div><div class="v" id="round-time"></div></div>
+        </div>
+        <label>Commitment head (hash chain over every bid so far)</label>
+        <div id="round-head" class="hash"></div>
+      </div>
+    </section>
+
+    <section class="card" id="bid-card">
+      <h2>3 · Place a sealed bid</h2>
+      <div class="row">
+        <div class="grow"><label for="bidder">Your name</label><input id="bidder" type="text" maxlength="32" autocomplete="off"></div>
+        <div style="width:190px"><label for="amount">Bid (sats)</label><input id="amount" type="number" min="1" step="1" inputmode="numeric"></div>
+      </div>
+      <label for="message">Message (optional, published with the bid)</label>
+      <input id="message" type="text" maxlength="140" autocomplete="off">
+      <div class="row" style="margin-top:12px">
+        <button id="btn-bid" class="primary" disabled>Seal and send</button>
+        <span class="hint" style="margin:0">Every bid counts. Bids can't be withdrawn.</span>
+      </div>
+      <ul id="receipts" class="receipts"></ul>
+    </section>
+
+    <section class="card hidden" id="results-card">
+      <h2>4 · Results <span class="right"><button id="btn-verify" class="small">Verify the list</button></span></h2>
+      <div id="winner" class="winner hidden">
+        <div class="hint" style="margin:0">Winner</div>
+        <div class="name" id="winner-name"></div>
+        <div class="amt" id="winner-amt"></div>
+        <div class="hint" id="winner-second"></div>
+      </div>
+      <ul id="checks" class="checks hidden"></ul>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="num">#</th><th>Bidder</th><th class="num">Sats</th><th>Message</th><th class="num">Seq</th></tr></thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" id="card-admin">
+      <details class="admin">
+        <summary>Admin</summary>
+        <label for="admin-token">Admin token (the ADMIN_TOKEN secret)</label>
+        <input id="admin-token" type="password" autocomplete="off">
+        <div class="row" style="margin-top:10px">
+          <button id="btn-close" class="danger" disabled>Close the round and publish</button>
+        </div>
+        <label for="new-title">New round title</label>
+        <input id="new-title" type="text" maxlength="80">
+        <div class="row" style="margin-top:6px">
+          <div style="width:220px"><label for="new-minutes">Auto-close after (minutes, optional)</label><input id="new-minutes" type="number" min="1" step="1"></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button id="btn-open" disabled>Open a new round</button></div>
+        <p class="hint">The admin can close a round early. The admin can't read bids before that. Check <code>app.py</code>: no endpoint returns them.</p>
+      </details>
+    </section>
+  </div>
+</main>
+
+<script type="module">
+const SDK_VERSION = "0.2.0";
+const SDK_URLS = [
+  `https://cdn.jsdelivr.net/npm/@enclavia/client-wasm@${SDK_VERSION}/enclavia_wasm.js`,
+  `https://unpkg.com/@enclavia/client-wasm@${SDK_VERSION}/enclavia_wasm.js`,
+];
+const BACKEND_URL = "https://api.beta.enclavia.io";
+const ENCLAVE_DOMAIN = "enclaves.beta.enclavia.io";
+
+const $ = (id) => document.getElementById(id);
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
+// ---------- storage (best effort: private windows can throw) ----------
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem("auction:" + key); return v === null ? fallback : JSON.parse(v); }
+    catch { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem("auction:" + key, JSON.stringify(value)); } catch {}
+  },
+};
+
+// ---------- console ----------
+const consoleEl = $("console");
+function log(kind, text, detail) {
+  const line = document.createElement("div");
+  const t = document.createElement("span");
+  t.className = "t";
+  t.textContent = new Date().toLocaleTimeString([], { hour12: false }) + "  ";
+  const msg = document.createElement("span");
+  if (kind) msg.className = kind;
+  msg.textContent = text;
+  line.append(t, msg);
+  if (detail !== undefined) {
+    const d = document.createElement("details");
+    const s = document.createElement("summary");
+    s.textContent = "details";
+    const pre = document.createElement("div");
+    pre.textContent = typeof detail === "string" ? detail : JSON.stringify(detail, null, 2);
+    d.append(s, pre);
+    line.append(d);
+  }
+  const atBottom = consoleEl.scrollHeight - consoleEl.scrollTop - consoleEl.clientHeight < 40;
+  consoleEl.append(line);
+  if (atBottom) consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+$("btn-clear").onclick = () => { consoleEl.textContent = ""; };
+
+// ---------- settings: URL params > localStorage ----------
+const params = new URLSearchParams(location.search);
+const fields = ["enclave", "pcr0", "pcr1", "pcr2"];
+const saved = store.get("settings", {});
+for (const f of fields) $(f).value = params.get(f) ?? saved[f] ?? "";
+$("debug-mode").checked = params.has("debug") ? params.get("debug") === "1" : !!saved.debug;
+$("trust-upgrades").checked = params.has("upgrades") ? params.get("upgrades") === "1" : !!saved.upgrades;
+$("bidder").value = store.get("bidder", "");
+
+// Served by the enclave itself through the hosted proxy: prefill its id.
+const hostMatch = location.hostname.match(/^([0-9a-f-]{36})\.enclaves\./i);
+if (!$("enclave").value && hostMatch) $("enclave").value = hostMatch[1];
+
+let pinnedPcrs = { pcr0: $("pcr0").value, pcr1: $("pcr1").value, pcr2: $("pcr2").value };
+
+function saveSettings() {
+  store.set("settings", {
+    enclave: $("enclave").value.trim(),
+    pcr0: $("pcr0").value.trim(), pcr1: $("pcr1").value.trim(), pcr2: $("pcr2").value.trim(),
+    debug: $("debug-mode").checked, upgrades: $("trust-upgrades").checked,
+  });
+}
+
+function target() {
+  const raw = $("enclave").value.trim();
+  if (!raw) throw new Error("enter an enclave ID or URL");
+  if (/^wss?:\/\//i.test(raw)) {
+    const u = new URL(raw);
+    const id = u.hostname.split(".")[0];
+    return { url: raw, id, proxyBase: `https://${u.host}/proxy` };
+  }
+  if (!/^[0-9a-f-]{36}$/i.test(raw)) throw new Error("that doesn't look like an enclave UUID");
+  return { url: `wss://${raw}.${ENCLAVE_DOMAIN}`, id: raw, proxyBase: `https://${raw}.${ENCLAVE_DOMAIN}/proxy` };
+}
+
+function short(hex, n = 10) { return hex && hex.length > 2 * n ? hex.slice(0, n) + "…" + hex.slice(-n) : hex; }
+
+// ---------- PCR games ----------
+function markTampered() {
+  for (const f of ["pcr0", "pcr1", "pcr2"]) {
+    $(f).classList.toggle("tampered", !!pinnedPcrs[f] && $(f).value.trim() !== pinnedPcrs[f]);
+  }
+}
+for (const btn of document.querySelectorAll("[data-flip]")) {
+  btn.onclick = () => {
+    const f = btn.dataset.flip;
+    const v = $(f).value.trim();
+    if (v.length < 2) { log("warn", `${f.toUpperCase()} is empty, nothing to flip`); return; }
+    const i = 2 * Math.floor(Math.random() * (v.length / 2));
+    const old = parseInt(v.slice(i, i + 2), 16);
+    const neu = (old ^ (1 + Math.floor(Math.random() * 255))).toString(16).padStart(2, "0");
+    $(f).value = v.slice(0, i) + neu + v.slice(i + 2);
+    log("warn", `${f.toUpperCase()} byte ${i / 2}: ${v.slice(i, i + 2)} → ${neu}. Reconnect to see what happens.`);
+    onPinsEdited();
+  };
+}
+$("btn-undo-flips").onclick = () => {
+  for (const f of ["pcr0", "pcr1", "pcr2"]) $(f).value = pinnedPcrs[f];
+  log("", "PCRs restored to the last values you set");
+  onPinsEdited();
+};
+function onPinsEdited() {
+  markTampered();
+  saveSettings();
+  $("pins-changed").classList.toggle("hidden", !client);
+}
+for (const f of fields) $(f).addEventListener("input", () => {
+  if (f !== "enclave") pinnedPcrs[f] = $(f).value.trim();
+  onPinsEdited();
+});
+$("debug-mode").onchange = onPinsEdited;
+$("trust-upgrades").onchange = onPinsEdited;
+
+$("btn-proxy-pcrs").onclick = async () => {
+  let t;
+  try { t = target(); } catch (e) { log("bad", e.message); return; }
+  log("req", `GET ${t.proxyBase}/health  (plain HTTPS through the hosted proxy)`);
+  try {
+    const r = await fetch(`${t.proxyBase}/health`, { cache: "no-store" });
+    const p = ["0", "1", "2"].map((n) => r.headers.get("X-Enclavia-PCR" + n));
+    if (!p.every(Boolean)) {
+      log("bad", `no X-Enclavia-PCR headers (HTTP ${r.status}). Is the enclave running, and is this the auction image?`);
+      return;
+    }
+    ["pcr0", "pcr1", "pcr2"].forEach((f, i) => { $(f).value = p[i]; pinnedPcrs[f] = p[i]; });
+    onPinsEdited();
+    log("warn", "PCRs filled in from the proxy. The proxy operator chose these values. Check them against `enclavia enclave status` or `enclavia reproduce` before you trust them.");
+  } catch (e) {
+    log("bad", `proxy request failed: ${e.message}`);
+  }
+};
+
+$("btn-share").onclick = async () => {
+  const u = new URL(location.href);
+  u.search = "";
+  for (const f of fields) if ($(f).value.trim()) u.searchParams.set(f, $(f).value.trim());
+  if ($("debug-mode").checked) u.searchParams.set("debug", "1");
+  if ($("trust-upgrades").checked) u.searchParams.set("upgrades", "1");
+  try { await navigator.clipboard.writeText(u.toString()); log("ok", "share link copied"); }
+  catch { log("", "share link: " + u.toString()); }
+};
+
+// ---------- SDK + connection ----------
+let sdk = null;
+async function loadSdk() {
+  if (sdk) return sdk;
+  for (const url of SDK_URLS) {
+    try {
+      log("", `loading @enclavia/client-wasm ${SDK_VERSION} from ${new URL(url).host}`);
+      const mod = await import(url);
+      const t0 = performance.now();
+      await mod.default();
+      log("ok", `SDK ready (wasm instantiated in ${Math.round(performance.now() - t0)} ms)`);
+      sdk = mod;
+      return sdk;
+    } catch (e) {
+      log("bad", `could not load the SDK from ${new URL(url).host}: ${e.message || e}`);
+    }
+  }
+  throw new Error("the SDK could not be loaded from any CDN");
+}
+
+let client = null;
+let connInfo = null;
+
+function setConn(state, text) {
+  const pill = $("conn-pill");
+  pill.className = "pill" + (state ? " " + state : "");
+  pill.textContent = text;
+  const up = state === "ok";
+  $("btn-connect").textContent = up ? "Reconnect" : "Connect and verify";
+  $("btn-disconnect").disabled = !up;
+  for (const id of ["btn-bid", "btn-close", "btn-open", "btn-raw"]) $(id).disabled = !up;
+}
+
+function explain(err) {
+  const s = String(err && err.message || err);
+  if (/trust_upgrades/i.test(s)) return "Following the upgrade chain failed. SDK 0.2.0 reads the enclave from an API route that needs a login, so this option doesn't work from a browser yet. Pin the current PCRs instead.";
+  if (/pcr/i.test(s)) return "The enclave's measurements don't match your pins: it isn't running the code you pinned (or you flipped a byte). Nothing was sent.";
+  if (/cert|signature|cose|chain/i.test(s)) return "The attestation signature didn't check out. A debug (QEMU) enclave needs Debug mode. A production one must not use it.";
+  if (/websocket|connect|closed|refused|network/i.test(s)) return "Couldn't reach the enclave. Check the ID and that it's running.";
+  return "";
+}
+
+async function connect() {
+  $("connect-error").classList.add("hidden");
+  $("pins-changed").classList.add("hidden");
+  saveSettings();
+  let t;
+  try { t = target(); } catch (e) { log("bad", e.message); return; }
+  const pcrs = { pcr0: $("pcr0").value.trim(), pcr1: $("pcr1").value.trim(), pcr2: $("pcr2").value.trim() };
+  const options = {};
+  if ($("debug-mode").checked) options.debugMode = true;
+  if ($("trust-upgrades").checked) options.trustUpgrades = { backendUrl: BACKEND_URL, enclaveId: t.id };
+  if (!$("trust-upgrades").checked && !(pcrs.pcr0 && pcrs.pcr1 && pcrs.pcr2)) {
+    log("bad", "fill in all three PCRs (or tick 'Follow the signed upgrade chain')");
+    return;
+  }
+  disconnect(true);
+  setConn("warn", "connecting…");
+  try {
+    const { connect: sdkConnect } = await loadSdk();
+    log("req", `connect ${t.url}`, { pcrs, options });
+    log("", options.debugMode
+      ? "Noise NN handshake, then the enclave's debug attestation: nonce bound to this handshake + PCR equality. No hardware signature in debug mode."
+      : "Noise NN handshake, then the Nitro attestation: COSE signature, AWS cert chain, nonce bound to this handshake, PCR equality.");
+    const t0 = performance.now();
+    client = await sdkConnect(t.url, pcrs, options);
+    connInfo = t;
+    const ms = Math.round(performance.now() - t0);
+    log("ok", `attested and connected in ${ms} ms. The channel ends inside the enclave, so the proxy only sees ciphertext.`);
+    setConn("ok", options.debugMode ? "attested (debug)" : "attested");
+    markTampered();
+    refreshStatus();
+  } catch (e) {
+    client = null;
+    setConn("bad", "refused");
+    const why = explain(e);
+    log("bad", `connect failed: ${e.message || e}`);
+    if (why) log("warn", why);
+    $("connect-error").textContent = why || String(e.message || e);
+    $("connect-error").classList.remove("hidden");
+  }
+}
+
+function disconnect(quiet) {
+  if (client) {
+    try { client.free(); } catch {}
+    client = null;
+    if (!quiet) log("", "disconnected");
+  }
+  setConn("", "not connected");
+}
+$("btn-connect").onclick = connect;
+$("btn-disconnect").onclick = () => disconnect(false);
+
+// One request through the attested channel. A dropped channel can't be
+// reused: reconnect (which re-verifies the attestation) and retry once.
+async function call(method, path, body, { auth = false, quiet = false } = {}) {
+  if (!client) throw new Error("not connected");
+  const headers = [];
+  const options = { headers };
+  if (body !== undefined) {
+    headers.push(["Content-Type", "application/json"]);
+    options.body = enc.encode(typeof body === "string" ? body : JSON.stringify(body));
+  }
+  if (auth) headers.push(["Authorization", "Bearer " + $("admin-token").value]);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const t0 = performance.now();
+    try {
+      const r = await client.fetch(method, path, options);
+      const text = dec.decode(r.body);
+      let json = null;
+      try { json = JSON.parse(text); } catch {}
+      const ms = Math.round(performance.now() - t0);
+      if (!quiet || r.status >= 400) {
+        const logged = auth ? { headers: headers.map(([k, v]) => [k, k === "Authorization" ? "Bearer ••••" : v]) } : { headers };
+        if (body !== undefined) logged.body = typeof body === "string" ? body : body;
+        log(r.status < 400 ? "req" : "bad", `${method} ${path} → ${r.status} (${ms} ms)`,
+          { request: logged, response: { status: r.status, headers: r.headers, body: json ?? text } });
+      }
+      return { status: r.status, json, text };
+    } catch (e) {
+      if (attempt === 0 && connInfo) {
+        log("warn", `${method} ${path} failed (${e.message || e}). The channel is gone. Reconnecting, which re-verifies the attestation.`);
+        const before = client;
+        await connect();
+        if (client && client !== before) continue;
+      }
+      throw e;
+    }
+  }
+}
+
+$("btn-raw").onclick = async () => {
+  const body = $("raw-body").value.trim();
+  try { await call($("raw-method").value, $("raw-path").value.trim() || "/", body || undefined, { auth: $("raw-auth").checked }); }
+  catch (e) { log("bad", `request failed: ${e.message || e}`); }
+};
+
+// ---------- auction ----------
+let lastStatus = null;
+const roundKey = () => `${connInfo?.id}:${lastStatus?.round}`;
+const fmtSats = (n) => n.toLocaleString("en-US") + " sats";
+const fmtBtc = (n) => (n / 1e8).toFixed(8).replace(/0+$/, "").replace(/\.$/, "") + " BTC";
+
+function rememberHead(st) {
+  // Heads seen while the round is open: checked against the published chain.
+  if (st.phase !== "open") return;
+  const key = "heads:" + connInfo.id + ":" + st.round;
+  const heads = store.get(key, {});
+  heads[st.bid_count] = st.head;
+  store.set(key, heads);
+}
+
+async function refreshStatus(quiet = false) {
+  if (!client) return;
+  let r;
+  try { r = await call("GET", "/status", undefined, { quiet }); }
+  catch (e) { log("bad", `status failed: ${e.message || e}`); return; }
+  if (r.status !== 200 || !r.json) return;
+  const st = r.json;
+  const roundChanged = !lastStatus || lastStatus.round !== st.round || lastStatus.phase !== st.phase;
+  lastStatus = st;
+  rememberHead(st);
+  $("round-empty").classList.add("hidden");
+  $("round").classList.remove("hidden");
+  $("round-title").textContent = `Round ${st.round}: ${st.title}`;
+  $("round-phase").textContent = st.phase === "open" ? "open" : "closed";
+  $("round-count").textContent = st.bid_count;
+  $("round-head").textContent = st.head;
+  renderTime();
+  renderReceipts();
+  $("bid-card").classList.toggle("hidden", st.phase !== "open");
+  if (st.phase === "closed" && roundChanged) loadResults();
+  if (st.phase === "open") $("results-card").classList.add("hidden");
+}
+
+function renderTime() {
+  const st = lastStatus;
+  if (!st) return;
+  const skew = st.server_time - Math.floor(Date.now() / 1000);
+  if (st.phase === "closed") {
+    $("round-time-k").textContent = "Closed";
+    $("round-time").textContent = new Date(st.closed_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } else if (st.closes_at) {
+    const left = Math.max(0, st.closes_at - (Math.floor(Date.now() / 1000) + skew));
+    $("round-time-k").textContent = "Closes in";
+    $("round-time").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  } else {
+    $("round-time-k").textContent = "Closes";
+    $("round-time").textContent = "no deadline";
+  }
+}
+setInterval(renderTime, 1000);
+setInterval(() => { if (client && $("auto-refresh").checked) refreshStatus(true); }, 4000);
+
+function myReceipts() { return store.get("receipts:" + roundKey(), []); }
+
+function renderReceipts() {
+  const ul = $("receipts");
+  ul.textContent = "";
+  for (const r of myReceipts()) {
+    const li = document.createElement("li");
+    const a = document.createElement("div");
+    a.textContent = `Receipt #${r.receipt.seq}: ${r.receipt.bidder} bid ${fmtSats(r.receipt.amount_sats)}`;
+    const b = document.createElement("div");
+    b.className = "hash";
+    b.textContent = `receipt ${short(r.receipt_hash)} · head after ${short(r.head_after)}`;
+    li.append(a, b);
+    ul.append(li);
+  }
+}
+
+$("btn-bid").onclick = async () => {
+  const bidder = $("bidder").value.trim();
+  const amount = Number($("amount").value);
+  if (!bidder) { log("bad", "enter your name"); return; }
+  if (!Number.isInteger(amount) || amount < 1) { log("bad", "the bid must be a whole number of sats"); return; }
+  store.set("bidder", bidder);
+  $("btn-bid").disabled = true;
+  try {
+    const r = await call("POST", "/bid", { bidder, amount_sats: amount, message: $("message").value.trim() });
+    if (r.status === 200) {
+      const list = myReceipts();
+      list.push(r.json);
+      store.set("receipts:" + roundKey(), list);
+      log("ok", `bid sealed as #${r.json.receipt.seq}. Keep the receipt: after the reveal you can check it's in the list.`);
+      $("amount").value = "";
+      $("message").value = "";
+      refreshStatus(true);
+    } else {
+      log("bad", r.json?.error || r.text);
+    }
+  } catch (e) {
+    log("bad", `bid failed: ${e.message || e}`);
+  } finally {
+    $("btn-bid").disabled = !client;
+  }
+};
+
+// The list comes in pages (each SDK response has to fit in one Noise
+// message). Bid fields are read from the receipt the enclave hashed.
+const unpack = (e) => ({ ...JSON.parse(e.receipt_canonical), ...e });
+async function fetchAllBids() {
+  let offset = 0, first = null;
+  const bids = [];
+  for (;;) {
+    const r = await call("GET", `/bids?offset=${offset}`, undefined, { quiet: offset > 0 });
+    if (r.status !== 200) return null;
+    first ??= r.json;
+    bids.push(...r.json.bids.map(unpack));
+    if (r.json.next_offset == null) break;
+    offset = r.json.next_offset;
+  }
+  return { ...first, bids, winner: first.winner && unpack(first.winner) };
+}
+
+let lastResults = null;
+async function loadResults() {
+  let res;
+  try { res = await fetchAllBids(); } catch (e) { log("bad", `results failed: ${e.message || e}`); return; }
+  if (!res) return;
+  lastResults = res;
+  $("results-card").classList.remove("hidden");
+  $("checks").classList.add("hidden");
+  const mine = new Set(myReceipts().map((x) => x.receipt_hash));
+  if (res.winner) {
+    $("winner").classList.remove("hidden");
+    $("winner-name").textContent = res.winner.bidder;
+    $("winner-amt").textContent = `${fmtSats(res.winner.amount_sats)} (${fmtBtc(res.winner.amount_sats)})`;
+    $("winner-second").textContent = res.second_price_sats != null
+      ? `Best bid from anyone else: ${fmtSats(res.second_price_sats)} (what a second-price auction would charge)`
+      : "No other bidders.";
+  } else {
+    $("winner").classList.add("hidden");
+  }
+  const ranked = [...res.bids].sort((a, b) => b.amount_sats - a.amount_sats || a.seq - b.seq);
+  const tbody = $("results-body");
+  tbody.textContent = "";
+  ranked.forEach((b, i) => {
+    const tr = document.createElement("tr");
+    if (mine.has(b.receipt_hash)) tr.className = "mine";
+    const cells = [
+      [String(i + 1), "num"], [b.bidder, "name"], [b.amount_sats.toLocaleString("en-US"), "num"],
+      [b.message || "", "msg"], [String(b.seq), "num"],
+    ];
+    for (const [text, cls] of cells) {
+      const td = document.createElement("td");
+      td.className = cls;
+      td.textContent = text;
+      tr.append(td);
+    }
+    tbody.append(tr);
+  });
+  log("ok", `round ${res.round} is closed: ${res.bids.length} bids published`);
+}
+
+// ---------- verification ----------
+async function sha256Hex(bytes) {
+  const d = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+const hexBytes = (h) => new Uint8Array(h.match(/../g).map((x) => parseInt(x, 16)));
+
+$("btn-verify").onclick = async () => {
+  const res = lastResults;
+  if (!res) return;
+  const out = [];
+  const check = (ok, text) => { out.push([ok, text]); log(ok ? "ok" : "bad", (ok ? "✓ " : "✗ ") + text); };
+  log("", "verifying the published list…");
+
+  check(await sha256Hex(enc.encode(res.header_canonical)) === res.genesis, "the chain starts from the round header");
+  let head = res.genesis;
+  let receiptsOk = true, chainOk = true;
+  const headAt = { 0: head };
+  for (const b of res.bids) {
+    const h = await sha256Hex(enc.encode(b.receipt_canonical));
+    if (h !== b.receipt_hash || b.round !== res.round || b.seq !== Object.keys(headAt).length) receiptsOk = false;
+    const joined = new Uint8Array(64);
+    joined.set(hexBytes(head), 0);
+    joined.set(hexBytes(h), 32);
+    head = await sha256Hex(joined);
+    if (head !== b.head_after) chainOk = false;
+    headAt[b.seq] = head;
+  }
+  check(res.bids.length === res.bid_count, `all ${res.bid_count} bids were downloaded`);
+  check(receiptsOk, `all ${res.bids.length} receipts hash to what was published, in order`);
+  check(chainOk && head === res.head, "the hash chain over every bid ends at the final head");
+
+  const mine = myReceipts();
+  if (mine.length) {
+    const found = mine.filter((m) => res.bids.some((b) => b.receipt_hash === m.receipt_hash && b.head_after === m.head_after));
+    check(found.length === mine.length, `your ${mine.length} bid(s) are in the list, unchanged and in the same position`);
+  }
+  const seen = store.get("heads:" + connInfo.id + ":" + res.round, {});
+  const seenKeys = Object.keys(seen);
+  if (seenKeys.length) {
+    const okSeen = seenKeys.every((n) => headAt[n] === seen[n]);
+    check(okSeen, `the ${seenKeys.length} head(s) this browser saw while the round was open are on the published chain`);
+  }
+  const ul = $("checks");
+  ul.textContent = "";
+  for (const [ok, text] of out) {
+    const li = document.createElement("li");
+    li.className = ok ? "ok" : "bad";
+    li.textContent = text;
+    ul.append(li);
+  }
+  ul.classList.remove("hidden");
+};
+
+// ---------- admin ----------
+$("btn-close").onclick = async () => {
+  try {
+    const r = await call("POST", "/admin/close", {}, { auth: true });
+    if (r.status === 200) { log("ok", "round closed, bids published"); refreshStatus(); }
+    else log("bad", r.json?.error || r.text);
+  } catch (e) { log("bad", `close failed: ${e.message || e}`); }
+};
+$("btn-open").onclick = async () => {
+  const body = { title: $("new-title").value.trim() || undefined };
+  const m = Number($("new-minutes").value);
+  if ($("new-minutes").value && m > 0) body.closes_in_minutes = m;
+  try {
+    const r = await call("POST", "/admin/open", body, { auth: true });
+    if (r.status === 200) { log("ok", `round ${r.json.round} is open`); lastResults = null; refreshStatus(); }
+    else log("bad", r.json?.error || r.text);
+  } catch (e) { log("bad", `open failed: ${e.message || e}`); }
+};
+
+log("", "Pin the enclave and connect. The SDK checks the attestation before it sends anything.");
+markTampered();
+if (params.get("connect") === "1") connect();
+</script>
+</body>
+</html>
