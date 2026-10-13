@@ -68,8 +68,15 @@ Two flags carry the security:
   older copy. Without it, the host can save a copy of the disk, make 9
   guesses, put the copy back, and repeat forever. The guess limit would
   then mean nothing. It needs `--production` and a plan that includes
-  it. Check that it took effect with `enclavia reproduce`: the
-  synchronizer setting is part of the measured image.
+  it. **The backend ignores the flag without an error if your plan
+  doesn't include it**, so check that it took effect:
+
+  ```sh
+  enclavia enclave status 1d2c3b4a --json | grep synchronizer_enabled
+  # "synchronizer_enabled": true
+  ```
+
+  If it says `false`, the guess limit doesn't hold against the host.
 - **No `--upgradable`.** On an upgradable enclave with managed
   custody, whoever controls the Enclavia account can ship a new version
   that reads every mnemonic. If you need upgrades, use
